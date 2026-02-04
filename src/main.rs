@@ -44,6 +44,7 @@ pub struct App {
     pub stress_started_at: Option<Instant>,
     pub stress_max_secs: u64,
     stress_state: Option<StressState>,
+    pub show_hardware: bool,
 }
 
 struct StressState {
@@ -95,6 +96,7 @@ impl App {
             stress_started_at: None,
             stress_max_secs: 60,
             stress_state: None,
+            show_hardware: false,
         }
     }
 
@@ -299,6 +301,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
                         KeyCode::Up | KeyCode::Char('k') => app.scroll_up(),
                         KeyCode::Char('r') => app.update(),
                         KeyCode::Char('t') => app.toggle_stress(),
+                        KeyCode::Char('h') => app.show_hardware = !app.show_hardware,
                         KeyCode::Esc => return Ok(()),
                         _ => {}
                     }
