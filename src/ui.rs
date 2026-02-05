@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
 
@@ -46,6 +46,10 @@ pub fn render(f: &mut Frame, app: &App) {
 
     // Render process table
     render_process_panel(f, main_chunks[1], app);
+
+    if app.show_hardware {
+        render_hardware_modal(f, app);
+    }
 }
 
 fn render_title(f: &mut Frame, area: Rect, app: &App) {
@@ -80,12 +84,98 @@ fn render_title(f: &mut Frame, area: Rect, app: &App) {
             Span::styled("Press ", Style::default().fg(Color::DarkGray)),
             Span::styled("'t'", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
             Span::styled(" to run 1m stress test", Style::default().fg(Color::DarkGray)),
+            Span::styled("  â”‚  ", Style::default().fg(Color::DarkGray)),
+            Span::styled("'h'", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+            Span::styled(" hardware info", Style::default().fg(Color::DarkGray)),
         ])
     };
 
     let para = Paragraph::new(vec![title, status_line])
         .block(Block::default().borders(Borders::BOTTOM));
     f.render_widget(para, area);
+}
+
+fn render_hardware_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(70, 60, f.area());
+    f.render_widget(Clear, area);
+
+    let mut lines = Vec::new();
+    lines.push(Line::from(vec![
+        Span::styled("Hardware Info", Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+    ]));
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("CPU Model: ", Style::default().fg(Color::Gray)),
+        Span::styled(app.hw.cpu_model.clone(), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled("CPU Cores: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("{}", app.hw.cpu_cores), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled("CPU TDP: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("{:.0} W", app.hw.cpu_tdp_watts), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("RAM: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("{:.1} GB", app.hw.ram_gb), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled("Disk (est.): ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("{:.0} GB", app.hw.disk_gb), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("CPU Cost: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("${:.2}", app.hw.cpu_cost), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled("RAM Cost: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("${:.2}", app.hw.ram_cost), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled("Disk Cost: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("${:.2}", app.hw.disk_cost), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled("Electricity: ", Style::default().fg(Color::Gray)),
+        Span::styled(format!("${:.2}/kWh", app.hw.electricity_rate), Style::default().fg(Color::White)),
+    ]));
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("Note: disk size is a placeholder on some OSes.", Style::default().fg(Color::DarkGray)),
+    ]));
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title("Hardware Info (press 'h' to close)")
+        .border_style(Style::default().fg(Color::Cyan));
+
+    let para = Paragraph::new(lines).block(block);
+    f.render_widget(para, area);
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    let vertical = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1]);
+
+    vertical[1]
 }
 
 fn render_cpu_panel(f: &mut Frame, area: Rect, app: &App) {
